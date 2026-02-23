@@ -1,6 +1,6 @@
 # Healthcare Analytics Dashboard
 
-A portfolio project demonstrating skills in **SQL**, **T-SQL queries**, **Python data loading**, and **Tableau-ready data exports**. Built for Business Intelligence and Epic IT roles in healthcare.
+
 
 ## Description
 
