@@ -1,0 +1,8 @@
+year,quarter,icd10_code,description,case_count
+2015,Q2,I10,Essential hypertension,1
+2018,Q1,E11.9,Type 2 diabetes,1
+2019,Q2,I10,Essential hypertension,1
+2020,Q1,E11.9,Type 2 diabetes,1
+2021,Q1,J06.9,Acute upper respiratory infection,1
+2021,Q4,J06.9,Acute upper respiratory infection,1
+2022,Q1,J00,Acute nasopharyngitis,1

@@ -1,0 +1,4 @@
+description,medication_code,prescription_count,avg_cost,total_cost
+Metformin,86009,2,25.0,50.0
+Lisinopril,314076,2,15.0,30.0
+Amoxicillin,1191,1,12.0,12.0

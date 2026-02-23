@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Healthcare Analytics Dashboard | NewYork-Presbyterian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0f1e;
+      --surface: #111827;
+      --border: #1f2937;
+      --primary: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f9fafb;
+      --muted: #6b7280;
+      --female: #ec4899;
+      --male: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+
+    .container { max-width: 1600px; margin: 0 auto; padding: 1.5rem; }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(139,92,246,0.05) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0;
+      margin-bottom: 1.5rem;
+    }
+    header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    header h1 { font-size: 1.5rem; font-weight: 700; }
+    header .subtitle { color: var(--muted); font-size: 0.9rem; }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 1rem;
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    .filter-group { display: flex; align-items: center; gap: 0.5rem; }
+    .filter-group label { color: var(--muted); font-size: 0.85rem; }
+    .filter-group select {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      min-width: 140px;
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+    }
+    .kpi-card:hover { transform: scale(1.02); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .kpi-card .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .kpi-card .value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .kpi-card .label { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+    .kpi-card.primary::before { background: linear-gradient(90deg, var(--primary), transparent); }
+    .kpi-card.success::before { background: linear-gradient(90deg, var(--success), transparent); }
+    .kpi-card.warning::before { background: linear-gradient(90deg, var(--warning), transparent); }
+    .kpi-card.danger::before { background: linear-gradient(90deg, var(--danger), transparent); }
+
+    /* Chart Grid */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      backdrop-filter: blur(10px);
+      min-height: 320px;
+    }
+    .chart-card.full-width { grid-column: 1 / -1; }
+    .chart-card h3 {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    .chart-card .chart-container { position: relative; height: 280px; }
+    .chart-card .chart-container.tall { height: 320px; }
+    .chart-card .error-msg {
+      color: var(--danger);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* Table */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .table-card h3 { margin-bottom: 1rem; }
+    .table-search {
+      width: 100%;
+      max-width: 300px;
+      padding: 0.5rem 1rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table th {
+      color: var(--muted);
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .data-table th:hover { color: var(--primary); }
+    .data-table td { color: var(--text); }
+    .data-table tr:hover td { background: rgba(59,130,246,0.05); }
+    .patient-count-cell {
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .pagination button {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .pagination button:hover:not(:disabled) { background: var(--border); }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Loading */
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,15,30,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.3s;
+    }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { margin-top: 1rem; color: var(--muted); }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .chart-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .container { padding: 1rem; }
+      header .container { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p class="loading-text">Loading healthcare data...</p>
+  </div>
+
+  <header>
+    <div class="container">
+      <div>
+        <h1>🏥 Healthcare Analytics Dashboard</h1>
+        <p class="subtitle">NewYork-Presbyterian | Clinical BI</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="filters">
+      <div class="filter-group">
+        <label>Year</label>
+        <select id="filter-year">
+          <option value="all">All Years</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Age Group</label>
+        <select id="filter-age">
+          <option value="all">All Ages</option>
+          <option value="Pediatric">Pediatric</option>
+          <option value="Young Adult">Young Adult</option>
+          <option value="Adult">Adult</option>
+          <option value="Senior">Senior</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Gender</label>
+        <select id="filter-gender">
+          <option value="all">All</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card primary">
+        <div class="icon">👥</div>
+        <div class="value" id="kpi-patients">0</div>
+        <div class="label">Total Patients</div>
+      </div>
+      <div class="kpi-card success">
+        <div class="icon">📋</div>
+        <div class="value" id="kpi-procedures">0</div>
+        <div class="label">Total Procedures</div>
+      </div>
+      <div class="kpi-card warning">
+        <div class="icon">💰</div>
+        <div class="value" id="kpi-avg-cost">$0</div>
+        <div class="label">Avg Procedure Cost</div>
+      </div>
+      <div class="kpi-card danger">
+        <div class="icon">🩺</div>
+        <div class="value" id="kpi-top-dx">—</div>
+        <div class="label">Top Diagnosis</div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Top 10 Diagnoses</h3>
+        <div class="chart-container">
+          <canvas id="chart-diagnoses"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Monthly Procedure Trend</h3>
+        <div class="chart-container">
+          <canvas id="chart-monthly"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Patient Demographics</h3>
+        <div class="chart-container">
+          <canvas id="chart-demographics"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Payer Coverage</h3>
+        <div class="chart-container">
+          <canvas id="chart-payer"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Encounter Types</h3>
+        <div class="chart-container">
+          <canvas id="chart-encounters"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Medication Cost</h3>
+        <div class="chart-container">
+          <canvas id="chart-medications"></canvas>
+        </div>
+      </div>
+      <div class="chart-card full-width">
+        <h3>Diagnosis Quarterly Trend</h3>
+        <div class="chart-container tall">
+          <canvas id="chart-dx-trend"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3>Top Procedures (by frequency)</h3>
+      <div class="chart-container">
+        <canvas id="chart-procedures"></canvas>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <h3>State Distribution</h3>
+      <input type="text" class="table-search" id="table-search" placeholder="Search state...">
+      <div id="state-table-wrapper" style="overflow-x: auto;">
+        <table class="data-table" id="state-table">
+          <thead>
+            <tr>
+              <th data-sort="state">State ▼</th>
+              <th data-sort="patient_count">Patients ▼</th>
+              <th data-sort="male_count">Male ▼</th>
+              <th data-sort="female_count">Female ▼</th>
+              <th data-sort="avg_age">Avg Age ▼</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="table-info">Showing 0-0 of 0</span>
+        <div>
+          <button id="prev-page" disabled>Previous</button>
+          <button id="next-page" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Built by SM Ehteshamul Haque | Data: Synthea Synthetic Patient Data | Skills: SQL · Python · Data Analytics
+  </footer>
+
+  <script>
+    const BASE = 'reports/output/';
+    let allData = {};
+    let charts = {};
+    const ROWS_PER_PAGE = 10;
+    let statePage = 0;
+    let stateSort = { col: 'patient_count', dir: -1 };
+    let stateFiltered = [];
+
+    function getData(key) {
+      const v = allData[key];
+      return Array.isArray(v) ? v : [];
+    }
+
+    Chart.defaults.color = '#9ca3af';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+    function loadCSV(name, callback) {
+      Papa.parse(BASE + name, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: (r) => {
+          if (r.errors.length) callback(null, r.errors[0].message);
+          else callback(r.data || []);
+        },
+        error: (err) => callback(null, err.message || 'Failed to load')
+      });
+    }
+
+    function loadAll(cb) {
+      const files = [
+        'top_diagnoses.csv', 'monthly_procedures.csv', 'patient_demographics.csv',
+        'top_procedures.csv', 'encounter_summary.csv', 'diagnosis_trends.csv',
+        'patient_cost_analysis.csv', 'medication_summary.csv', 'payer_coverage.csv',
+        'state_distribution.csv'
+      ];
+      let done = 0;
+      const results = {};
+      files.forEach(f => {
+        loadCSV(f, (data, err) => {
+          results[f.replace('.csv','')] = err ? { error: err } : data;
+          done++;
+          if (done === files.length) {
+            allData = results;
+            cb();
+          }
+        });
+      });
+    }
+
+    function animateValue(el, end, prefix = '', suffix = '', duration = 1500) {
+      if (typeof end !== 'number') { el.textContent = prefix + (end || '0') + suffix; return; }
+      const start = 0;
+      const startTime = performance.now();
+      function update(now) {
+        const t = Math.min((now - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const v = start + (end - start) * eased;
+        el.textContent = prefix + Math.round(v) + suffix;
+        if (t < 1) requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    }
+
+    function applyFilters() {
+      const year = document.getElementById('filter-year').value;
+      const age = document.getElementById('filter-age').value;
+      const gender = document.getElementById('filter-gender').value;
+
+      let demo = getData('patient_demographics');
+      if (age !== 'all') demo = demo.filter(r => r.age_group === age);
+      if (gender !== 'all') demo = demo.filter(r => r.gender === gender);
+
+      let monthly = getData('monthly_procedures');
+      if (year !== 'all') monthly = monthly.filter(r => (r.month || '').startsWith(year));
+
+      let dxTrend = getData('diagnosis_trends');
+      if (year !== 'all') dxTrend = dxTrend.filter(r => r.year === year);
+
+      let payer = getData('payer_coverage');
+      if (year !== 'all') payer = payer.filter(r => r.year === year);
+
+      stateFiltered = [...getData('state_distribution')];
+
+      updateKPIs(demo, monthly);
+      updateChartDiagnoses();
+      updateChartMonthly(monthly);
+      updateChartDemographics(demo);
+      updateChartPayer(payer);
+      updateChartEncounters();
+      updateChartMedications();
+      updateChartDxTrend(dxTrend);
+      updateChartProcedures();
+      updateStateTable();
+    }
+
+    function updateKPIs(demo, monthly) {
+      const totalPatients = demo.reduce((s, r) => s + parseInt(r.patient_count || 0), 0) ||
+        getData('patient_demographics').reduce((s, r) => s + parseInt(r.patient_count || 0), 0);
+      const totalProcedures = monthly.reduce((s, r) => s + parseInt(r.procedure_count || 0), 0) ||
+        getData('monthly_procedures').reduce((s, r) => s + parseInt(r.procedure_count || 0), 0);
+      const allMonthly = getData('monthly_procedures');
+      const avgCost = allMonthly.length ? allMonthly.reduce((s, r) => s + parseFloat(r.avg_cost || 0), 0) / allMonthly.length : 0;
+      const topDx = getData('top_diagnoses')[0];
+      const topDxLabel = topDx ? (topDx.description || topDx.icd10_code) : '—';
+
+      animateValue(document.getElementById('kpi-patients'), totalPatients);
+      animateValue(document.getElementById('kpi-procedures'), totalProcedures);
+      document.getElementById('kpi-avg-cost').textContent = '$' + avgCost.toFixed(0);
+      document.getElementById('kpi-top-dx').textContent = topDxLabel.length > 20 ? topDxLabel.slice(0, 17) + '...' : topDxLabel;
+    }
+
+    function updateChartDiagnoses() {
+      const data = getData('top_diagnoses');
+      if (charts.diagnoses) charts.diagnoses.destroy();
+      charts.diagnoses = new Chart(document.getElementById('chart-diagnoses'), {
+        type: 'bar',
+        data: {
+          labels: data.map(r => r.description || r.icd10_code),
+          datasets: [{
+            label: 'Patients',
+            data: data.map(r => parseInt(r.patient_count || 0)),
+            backgroundColor: 'rgba(59,130,246,0.8)',
+            borderColor: 'rgba(139,92,246,0.8)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (c) => {
+                  const r = data[c.dataIndex];
+                  return [`ICD-10: ${r.icd10_code || '—'}`, `Patients: ${c.raw}`];
+                }
+              }
+            }
+          },
+          scales: {
+            x: { beginAtZero: true }
+          },
+          animation: { duration: 800 }
+        }
+      });
+    }
+
+    function updateChartMonthly(monthly) {
+      const data = monthly.length ? monthly : getData('monthly_procedures');
+      if (charts.monthly) charts.monthly.destroy();
+      charts.monthly = new Chart(document.getElementById('chart-monthly'), {
+        type: 'bar',
+        data: {
+          labels: data.map(r => r.month || ''),
+          datasets: [
+            {
+              type: 'line',
+              label: 'Procedure Count',
+              data: data.map(r => parseInt(r.procedure_count || 0)),
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59,130,246,0.1)',
+              fill: true,
+              yAxisID: 'y'
+            },
+            {
+              type: 'bar',
+              label: 'Revenue',
+              data: data.map(r => parseFloat(r.total_revenue || 0)),
+              backgroundColor: 'rgba(16,185,129,0.6)',
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            y: { type: 'linear', position: 'left', beginAtZero: true },
+            y1: { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false } }
+          },
+          animation: { duration: 800 }
+        }
+      });
+    }
+
+    function updateChartDemographics(demo) {
+      const data = demo.length ? demo : getData('patient_demographics');
+      const ageGroups = [...new Set(data.map(r => r.age_group))].sort();
+      const genders = ['Male', 'Female', 'Other'];
+      const colors = { Male: '#3b82f6', Female: '#ec4899', Other: '#6b7280' };
+      const datasets = genders.map(g => ({
+        label: g,
+        data: ageGroups.map(ag => data.filter(r => r.age_group === ag && r.gender === g).reduce((s, r) => s + parseInt(r.patient_count || 0), 0)),
+        backgroundColor: colors[g]
+      }));
+      if (charts.demographics) charts.demographics.destroy();
+      charts.demographics = new Chart(document.getElementById('chart-demographics'), {
+        type: 'bar',
+        data: { labels: ageGroups, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { x: { stacked: false }, y: { beginAtZero: true } },
+          animation: { duration: 800 }
+        }
+      });
+    }
+
+    function updateChartPayer(payer) {
+      const data = payer.length ? payer : getData('payer_coverage');
+      if (charts.payer) charts.payer.destroy();
+      charts.payer = new Chart(document.getElementById('chart-payer'), {
+        type: 'line',
+        data: {
+          labels: data.map(r => `${r.year || ''} ${r.encounter_class || ''}`),
+          datasets: [
+            { label: 'Avg Covered', data: data.map(r => parseFloat(r.avg_covered || 0)), borderColor: '#10b981', fill: true, backgroundColor: 'rgba(16,185,129,0.2)' },
+            { label: 'Patient Responsibility', data: data.map(r => parseFloat(r.avg_patient_responsibility || 0)), borderColor: '#ef4444', fill: true, backgroundColor: 'rgba(239,68,68,0.2)' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                afterLabel: (c) => {
+                  const r = data[c.dataIndex];
+                  return r.coverage_rate != null ? `Coverage: ${parseFloat(r.coverage_rate).toFixed(1)}%` : '';
+                }
+              }
+            }
+          },
+          scales: { y: { beginAtZero: true } },
+          animation: { duration: 800 }
+        }
+      });
+    }
+
+    function updateChartEncounters() {
+      const data = getData('encounter_summary');
+      if (charts.encounters) charts.encounters.destroy();
+      const colors = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+      charts.encounters = new Chart(document.getElementById('chart-encounters'), {
+        type: 'doughnut',
+        data: {
+          labels: data.map(r => `${r.encounter_class || ''} - ${(r.encounter_type || '').slice(0, 15)}`),
+          datasets: [{
+            data: data.map(r => parseInt(r.encounter_count || 0)),
+            backgroundColor: data.map((_, i) => colors[i % colors.length])
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right' },
+            tooltip: {
+              callbacks: {
+                label: (c) => {
+                  const t = c.dataset.data.reduce((a, b) => a + b, 0);
+                  const pct = t ? ((c.raw / t) * 100).toFixed(1) : 0;
+                  return `${c.label}: ${c.raw} (${pct}%)`;
+                }
+              }
+            }
+          },
+          animation: { duration: 800 }
+        }
+      });
+    }
+
+    function updateChartMedications() {
+      const data = getData('medication_summary').slice(0, 10);
+      if (charts.medications) charts.medications.destroy();
+      charts.medications = new Chart(document.getElementById('chart-medications'), {
+        type: 'bar',
+        data: {
+          labels: data.map(r => (r.description || '').slice(0, 25)),
+          datasets: [{
+            label: 'Total Cost',
+            data: data.map(r => parseFloat(r.total_cost || 0)),
+            backgroundColor: 'rgba(245,158,11,0.7)'
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                afterLabel: (c) => {
+                  const r = data[c.dataIndex];
+                  return `Prescriptions: ${r.prescription_count || 0}`;
+                }
+              }
+            }
+          },
+          scales: { x: { beginAtZero: true } },
+          animation: { duration: 800 }
+        }
+      });
+    }
+
+    function updateChartDxTrend(dxTrend) {
+      const data = dxTrend.length ? dxTrend : getData('diagnosis_trends');
+      const byDx = {};
+      data.forEach(r => {
+        const key = r.icd10_code + '|' + (r.description || '');
+        if (!byDx[key]) byDx[key] = { code: r.icd10_code, desc: r.description, points: [] };
+        byDx[key].points.push({ q: `${r.year} ${r.quarter || ''}`, count: parseInt(r.case_count || 0) });
+      });
+      const top5 = Object.values(byDx)
+        .sort((a, b) => b.points.reduce((s, p) => s + p.count, 0) - a.points.reduce((s, p) => s + p.count, 0))
+        .slice(0, 5);
+      const labels = [...new Set(data.map(r => `${r.year || ''} ${r.quarter || ''}`))].sort();
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+      if (charts.dxTrend) charts.dxTrend.destroy();
+      charts.dxTrend = new Chart(document.getElementById('chart-dx-trend'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: top5.map((d, i) => ({
+            label: d.desc || d.code,
+            data: labels.map(l => {
+              const p = d.points.find(x => x.q === l);
+              return p ? p.count : 0;
+            }),
+            borderColor: colors[i],
+            tension: 0.3,
+            fill: false
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true } },
+          animation: { duration: 800 }
+        }
+      });
+    }
+
+    function updateChartProcedures() {
+      const data = getData('top_procedures');
+      if (charts.procedures) charts.procedures.destroy();
+      const costs = data.map(r => parseFloat(r.avg_cost || 0));
+      const minC = Math.min(...costs) || 0;
+      const maxC = Math.max(...costs) || 1;
+      const getColor = (v) => {
+        const t = (v - minC) / (maxC - minC || 1);
+        const r = Math.round(239 - t * 199);
+        const g = Math.round(68 + t * 117);
+        return `rgb(${r},${g},68)`;
+      };
+      charts.procedures = new Chart(document.getElementById('chart-procedures'), {
+        type: 'bar',
+        data: {
+          labels: data.map(r => (r.description || r.cpt_code || '').slice(0, 30)),
+          datasets: [{
+            label: 'Frequency',
+            data: data.map(r => parseInt(r.frequency || 0)),
+            backgroundColor: data.map((r, i) => getColor(parseFloat(r.avg_cost || 0)))
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                afterLabel: (c) => {
+                  const r = data[c.dataIndex];
+                  return `CPT: ${r.cpt_code || '—'} | Avg cost: $${parseFloat(r.avg_cost || 0).toFixed(2)}`;
+                }
+              }
+            }
+          },
+          scales: { y: { beginAtZero: true } },
+          animation: { duration: 800 }
+        }
+      });
+    }
+
+    function updateStateTable() {
+      const search = document.getElementById('table-search').value.toLowerCase();
+      let data = stateFiltered.filter(r =>
+        (r.state || '').toLowerCase().includes(search)
+      );
+      const col = stateSort.col;
+      const dir = stateSort.dir;
+      data.sort((a, b) => {
+        const va = a[col];
+        const vb = b[col];
+        const cmp = isNaN(va) ? String(va).localeCompare(vb) : (parseFloat(va) || 0) - (parseFloat(vb) || 0);
+        return dir * (cmp > 0 ? 1 : cmp < 0 ? -1 : 0);
+      });
+      const maxP = Math.max(...data.map(r => parseInt(r.patient_count || 0)), 1);
+      const pageData = data.slice(statePage * ROWS_PER_PAGE, (statePage + 1) * ROWS_PER_PAGE);
+      const tbody = document.querySelector('#state-table tbody');
+      tbody.innerHTML = pageData.map(r => {
+        const pc = parseInt(r.patient_count || 0);
+        const ratio = pc / maxP;
+        const bg = ratio < 0.33 ? 'rgba(16,185,129,0.3)' : ratio < 0.66 ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)';
+        return `<tr>
+          <td>${r.state || '—'}</td>
+          <td><span class="patient-count-cell" style="background:${bg}">${pc}</span></td>
+          <td>${r.male_count ?? '—'}</td>
+          <td>${r.female_count ?? '—'}</td>
+          <td>${parseFloat(r.avg_age || 0).toFixed(1)}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('table-info').textContent = `Showing ${statePage * ROWS_PER_PAGE + 1}-${Math.min((statePage + 1) * ROWS_PER_PAGE, data.length)} of ${data.length}`;
+      document.getElementById('prev-page').disabled = statePage === 0;
+      document.getElementById('next-page').disabled = (statePage + 1) * ROWS_PER_PAGE >= data.length;
+    }
+
+    document.querySelectorAll('#state-table th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        stateSort = { col, dir: stateSort.col === col ? -stateSort.dir : -1 };
+        updateStateTable();
+      });
+    });
+    document.getElementById('table-search').addEventListener('input', () => { statePage = 0; updateStateTable(); });
+    document.getElementById('prev-page').addEventListener('click', () => { statePage--; updateStateTable(); });
+    document.getElementById('next-page').addEventListener('click', () => { statePage++; updateStateTable(); });
+
+    document.getElementById('filter-year').addEventListener('change', applyFilters);
+    document.getElementById('filter-age').addEventListener('change', applyFilters);
+    document.getElementById('filter-gender').addEventListener('change', applyFilters);
+
+    function showChartError(targetId, msg) {
+      const el = document.getElementById(targetId);
+      if (!el) return;
+      const container = targetId === 'state-table-wrapper' ? el : el.closest('.chart-card')?.querySelector('.chart-container');
+      if (container) container.innerHTML = `<div class="error-msg">${msg}</div>`;
+    }
+
+    function init() {
+      Object.entries(allData).forEach(([k, v]) => {
+        if (v && typeof v === 'object' && !Array.isArray(v) && v.error) {
+          const map = { top_diagnoses: 'chart-diagnoses', monthly_procedures: 'chart-monthly', patient_demographics: 'chart-demographics', top_procedures: 'chart-procedures', encounter_summary: 'chart-encounters', diagnosis_trends: 'chart-dx-trend', medication_summary: 'chart-medications', payer_coverage: 'chart-payer', state_distribution: 'state-table-wrapper' };
+          if (map[k]) showChartError(map[k], v.error);
+        }
+      });
+      const years = new Set();
+      getData('diagnosis_trends').forEach(r => { if (r.year) years.add(r.year); });
+      getData('payer_coverage').forEach(r => { if (r.year) years.add(r.year); });
+      getData('monthly_procedures').forEach(r => {
+        const m = r.month || '';
+        if (m.length >= 4) years.add(m.slice(0, 4));
+      });
+      const yearSelect = document.getElementById('filter-year');
+      [...years].sort().forEach(y => {
+        const o = document.createElement('option');
+        o.value = y;
+        o.textContent = y;
+        yearSelect.appendChild(o);
+      });
+      applyFilters();
+      document.getElementById('loading-overlay').classList.add('hidden');
+    }
+
+    loadAll(init);
+  </script>
+</body>
+</html>

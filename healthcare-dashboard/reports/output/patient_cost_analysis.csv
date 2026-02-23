@@ -1,0 +1,6 @@
+patient_id,age_group,gender,state,procedure_count,diagnosis_count,total_procedure_cost,total_encounter_cost
+a1b2c3d4-1111-2222-3333-444455556666,Adult,Male,MA,3,3,2880.0,6300.0
+b2c3d4e5-2222-3333-4444-555566667777,Adult,Female,NY,1,1,220.0,220.0
+c3d4e5f6-3333-4444-5555-666677778888,Adult,Male,CA,1,1,150.0,150.0
+e5f6a7b8-5555-6666-7777-888899990000,Senior,Male,NY,1,1,150.0,150.0
+d4e5f6a7-4444-5555-6666-777788889999,Young Adult,Female,MA,1,1,120.0,120.0

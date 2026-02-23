@@ -1,0 +1,5 @@
+age_group,gender,patient_count,avg_age
+Adult,Female,1,35.0
+Adult,Male,2,45.0
+Senior,Male,1,65.0
+Young Adult,Female,1,21.0

@@ -1,0 +1,5 @@
+encounter_class,encounter_type,encounter_count,avg_cost,total_cost
+ambulatory,Office Visit,4,188.75,755.0
+ambulatory,Wellness Visit,1,180.0,180.0
+urgentcare,Urgent Care,1,285.0,285.0
+wellness,Wellness Visit,1,120.0,120.0

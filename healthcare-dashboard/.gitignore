@@ -1,0 +1,14 @@
+# Database
+healthcare.db
+*.db
+
+# Python
+__pycache__/
+venv/
+.venv/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+*.swp

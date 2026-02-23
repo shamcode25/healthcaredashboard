@@ -1,0 +1,5 @@
+cpt_code,description,frequency,total_cost,avg_cost
+99213,Office visit,3,450.0,150.0
+80053,Comprehensive metabolic panel,2,170.0,85.0
+99212,Office visit new patient,1,120.0,120.0
+99214,Office visit extended,1,220.0,220.0
