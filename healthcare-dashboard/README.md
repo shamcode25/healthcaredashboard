@@ -134,8 +134,12 @@ Then open http://localhost:8080/dashboard.html
 
 ## Screenshots
 
-*(Add Tableau dashboard screenshots here for your portfolio)*
+*(Add Table<img width="329" height="555" alt="Screenshot 2026-02-22 at 7 11 49 PM" src="https://github.com/user-attachments/assets/2257ce62-39bf-433c-b75b-5ed32364ac53" />
+au dashboard screenshots here for your portfolio)*
+<img width="728" height="602" alt="Screenshot 2026-02-22 at 7 11 29 PM" src="https://github.com/user-attachments/assets/8aa903dc-0a6c-48a1-bc9c-b7743df66c40" />
 
----
+---<img width="637" height="560" alt="Screenshot 2026-02-22 at 7 12 12 PM" src="https://github.com/user-attachments/assets/10ca0064-0e35-4032-9869-e1b76d4534a0" />
+<img width="814" height="523" alt="Screenshot 2026-02-22 at 7 12 52 PM" src="https://github.com/user-attachments/assets/b3d50b80-e708-44fb-ae80-5ad9e4151c1f" />
+
 
 Built for portfolio use. Ideal for BI/Epic IT roles at healthcare organizations like NewYork-Presbyterian.
