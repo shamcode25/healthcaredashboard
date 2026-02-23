@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/healthcare-dashboard/" },
+    { "source": "/(.*)", "destination": "/healthcare-dashboard/$1" }
+  ]
+}
